@@ -10,7 +10,7 @@ type Source = {
 }
 
 export type IRCEvents = {
-  message: { event: 'message'; source?: Source; params: { target: string; text: string } }
+  privmsg: { event: 'privmsg'; source?: Source; params: { target: string; text: string } }
   action: { event: 'action'; source?: Source; params: { target: string; text: string } }
   notice: { event: 'notice'; source?: Source; params: { target: string; text: string } }
   join: { event: 'join'; source?: Source; params: { channel: string } }
@@ -28,7 +28,7 @@ export type IRCServerEvents = {
   connected: { event: 'connected'; hostname: string; port?: number; tls?: boolean }
   disconnected: { event: 'disconnected'; hostname: string; port?: number; tls?: boolean }
   reconnecting: { event: 'reconnecting'; hostname: string; port?: number; tls?: boolean }
-  registered: { event: 'registered'; source?: Source; params: { nick: string; text: string } }
+  register: { event: 'register'; source?: Source; params: { nick: string; text: string } }
   error_reply: { event: 'error_reply'; hostname?: string; command: string; args: string[]; value: string }
 }
 
@@ -61,6 +61,7 @@ export class IRCService {
     this.proxy.on('connected', (data) => console.log('[connected]', data))
     this.proxy.on('disconnected', (data) => console.log('[disconnected]', data))
     this.proxy.on('reconnecting', (data) => console.log('[reconnecting]', data))
+    this.proxy.on('notice', (data) => console.log('[notice]', data))
   }
 
   get client(): Client {
@@ -73,3 +74,4 @@ function defaultTextFilter(text: string) {
   const output = text.slice(0, 480)
   return output
 }
+

@@ -3,7 +3,8 @@ import { BaseService } from '../core/services.ts'
 
 export class EchoService extends BaseService {
   processEvent(event: IRCEvent) {
-    if (event.event === 'message') {
+    console.log('echo', event)
+    if (event.event === 'privmsg') {
       this.irc?.client.privmsg(event.params.target, `echo: ${event.params.text}`)
     }
   }

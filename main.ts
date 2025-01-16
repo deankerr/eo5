@@ -1,23 +1,53 @@
-import { IrcBot } from './core/core.ts'
+import { Core } from './core/core.ts'
 import { IRCService } from './core/irc.ts'
 import { EchoService } from './services/echo.ts'
+import { parseArgs } from 'jsr:@std/cli/parse-args'
 
 globalThis.addEventListener('unhandledrejection', (e) => {
   console.error('unhandled rejection at:', e.promise, 'reason:', e.reason)
   e.preventDefault()
 })
 
-console.log('*** IRC ***')
-console.log('IRC_HOSTNAME:', Deno.env.get('IRC_HOSTNAME'))
-console.log('IRC_NICK:', Deno.env.get('IRC_NICK'))
-console.log('IRC_CHANNEL:', Deno.env.get('IRC_CHANNEL'))
+type IRCChannels = [
+  channel: string | [channel: string, key: string],
+  ...channels: (string | [channel: string, key: string])[],
+]
 
-const irc = new IRCService({
-  nick: Deno.env.get('IRC_NICK')!,
-  channels: [Deno.env.get('IRC_CHANNEL')!],
-})
+function getChannels(channels?: string) {
+  if (!channels) return
+  return channels.split(',') as IRCChannels
+}
 
-const bot = new IrcBot(irc)
-bot.registerService(new EchoService())
+function getConfig() {
+  const args = parseArgs(Deno.args, {
+    string: ['nick', 'channels', 'hostname', 'username', 'realname'],
+    boolean: ['debug'],
+  })
 
-irc.client.connect(Deno.env.get('IRC_HOSTNAME')!)
+  const hostname = args.hostname || Deno.env.get('IRC_HOSTNAME')
+  if (!hostname) throw new Error('hostname is required')
+
+  return {
+    hostname,
+    nick: args.nick || Deno.env.get('IRC_NICK') || 'eo5',
+    channels: getChannels(args.channels || Deno.env.get('IRC_CHANNELS')),
+    username: args.username || Deno.env.get('IRC_USERNAME'),
+    realname: args.realname || Deno.env.get('IRC_REALNAME'),
+    verbose: args.debug ? ('formatted' as const) : undefined,
+
+    floodDelay: 1000,
+    pingTimeout: false,
+  } as const
+}
+
+const config = getConfig()
+
+console.log('*** eo5 ***')
+console.log(config)
+
+const irc = new IRCService(config)
+
+const core = new Core(irc)
+core.registerService('echo', new EchoService())
+
+irc.client.connect(config.hostname)
